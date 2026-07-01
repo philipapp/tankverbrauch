@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Tankverbrauch</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tanken">
+<meta name="theme-color" content="#0b0c10">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --bg: #0b0c10;
+    --card: #1a1c22;
+    --card-2: #22242c;
+    --accent: #ff9f0a;
+    --text: #f5f5f7;
+    --text-dim: #9a9ba3;
+    --danger: #ff453a;
+    --good: #30d158;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 4px 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .field {
+    margin-bottom: 14px;
+  }
+  .field:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  input {
+    width: 100%;
+    background: var(--card-2);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 14px;
+    font-size: 17px;
+    color: var(--text);
+    outline: none;
+  }
+  input:focus { box-shadow: 0 0 0 2px var(--accent); }
+  button {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #1a1300;
+    margin-top: 4px;
+  }
+  .btn-primary:active { opacity: 0.8; }
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(255,69,58,0.4);
+  }
+  .btn-danger:active { opacity: 0.7; }
+  .btn-export {
+    background: var(--card-2);
+    color: var(--text);
+    border: 1px solid #33353d;
+    font-size: 15px;
+    padding: 14px;
+  }
+  .btn-export:active { opacity: 0.7; }
+  .result {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #2c2e36;
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .result b { color: var(--good); }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+  }
+  .stat .val { font-size: 16px; font-weight: 700; }
+  .stat .lbl { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .empty { color: var(--text-dim); text-align: center; padding: 30px 0; font-size: 15px; }
+  section h2 {
+    font-size: 15px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 24px 0 10px;
+  }
+  .entry-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #262832;
+  }
+  .entry-header .date { font-size: 13px; color: var(--text-dim); }
+  .entry-header .kmstart { font-size: 13px; color: var(--text-dim); }
+  .entry-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 9px 14px;
+  }
+  .entry-grid .item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    gap: 6px;
+  }
+  .entry-grid .item span { color: var(--text-dim); }
+  .entry-grid .item b { font-weight: 600; white-space: nowrap; }
+  .entry-grid .verbrauch b { color: var(--accent); }
+  .divider-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    margin: 26px 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .export-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  #printArea { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    #printArea, #printArea * { visibility: visible; }
+    #printArea {
+      display: block;
+      position: absolute;
+      left: 0; top: 0; width: 100%;
+      color: #000; background: #fff;
+    }
+    #printArea table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    #printArea th, #printArea td { border: 1px solid #999; padding: 6px 8px; text-align: right; color: #000; }
+    #printArea th:first-child, #printArea td:first-child { text-align: left; }
+    #printArea thead tr { background: #eee; }
+    #printArea tfoot td { font-weight: 700; background: #f2f2f2; }
+  }
+</style>
+</head>
+<body>
+
+<h1>⛽ Tankverbrauch</h1>
+
+<div class="stats" id="stats"></div>
+
+<div class="card">
+  <div class="field">
+    <label>Kilometerstand (Trip-Anzeige)</label>
+    <input id="kmStart" type="text" inputmode="decimal" placeholder="z. B. 430,1">
+  </div>
+  <div class="field">
+    <label>Getankte Liter</label>
+    <input id="liter" type="text" inputmode="decimal" placeholder="z. B. 32,5">
+  </div>
+  <div class="field">
+    <label>Gesamtpreis (€)</label>
+    <input id="preis" type="text" inputmode="decimal" placeholder="z. B. 55,90">
+  </div>
+  <button class="btn-primary" onclick="eintragSpeichern()">Speichern</button>
+  <div class="result" id="result" style="display:none"></div>
+</div>
+
+<section>
+  <h2>Historie</h2>
+  <div id="history"></div>
+</section>
+
+<div class="divider-label">Reise abschließen</div>
+<div class="export-row">
+  <button class="btn-export" onclick="exportPDF()">📄 PDF exportieren</button>
+  <button class="btn-export" onclick="exportCSV()">📊 Excel exportieren</button>
+</div>
+<button class="btn-danger" onclick="historieLoeschen()">Historie löschen</button>
+
+<div id="printArea"></div>
+
+<script>
+const STORAGE_KEY = "tankverlauf";
+
+function ladenDaten() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+}
+
+function speichernDaten(daten) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(daten));
+}
+
+function eintragSpeichern() {
+  const kmStart = parseFloat(document.getElementById("kmStart").value.replace(",", "."));
+  const liter = parseFloat(document.getElementById("liter").value.replace(",", "."));
+  const preis = parseFloat(document.getElementById("preis").value.replace(",", "."));
+
+  if (!kmStart || !liter || !preis || kmStart <= 0 || liter <= 0 || preis <= 0) {
+    alert("Bitte alle Felder mit gültigen Werten ausfüllen.");
+    return;
+  }
+
+  const daten = ladenDaten();
+  const letzterKmStart = daten.length ? daten[0].kmStart : 0;
+  const kmDazwischen = kmStart > letzterKmStart ? kmStart - letzterKmStart : kmStart;
+
+  const verbrauch = (liter / kmDazwischen) * 100;
+  const preisProLiter = preis / liter;
+  const kostenProKm = preis / kmDazwischen;
+
+  const eintrag = {
+    datum: new Date().toLocaleDateString("de-DE"),
+    kmStart, kmDazwischen, liter, preis,
+    verbrauch, preisProLiter, kostenProKm
+  };
+
+  daten.unshift(eintrag);
+  speichernDaten(daten);
+
+  document.getElementById("result").style.display = "block";
+  document.getElementById("result").innerHTML = `
+    Δ seit letztem Tanken: <b>${kmDazwischen.toFixed(1)} km</b><br>
+    Verbrauch: <b>${verbrauch.toFixed(2)} l/100km</b><br>
+    Preis pro Liter: <b>${preisProLiter.toFixed(3)} €</b><br>
+    Kosten pro km: <b>${kostenProKm.toFixed(3)} €</b>
+  `;
+
+  document.getElementById("kmStart").value = "";
+  document.getElementById("liter").value = "";
+  document.getElementById("preis").value = "";
+
+  render();
+}
+
+function historieLoeschen() {
+  if (confirm("Wirklich die komplette Historie löschen?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById("result").style.display = "none";
+    render();
+  }
+}
+
+function berechneSummen(daten) {
+  const gesamtKm = daten.reduce((s, d) => s + d.kmDazwischen, 0);
+  const gesamtLiter = daten.reduce((s, d) => s + d.liter, 0);
+  const gesamtPreis = daten.reduce((s, d) => s + d.preis, 0);
+  const avgVerbrauch = (gesamtLiter / gesamtKm) * 100;
+  const avgPreisProLiter = gesamtPreis / gesamtLiter;
+  return { gesamtKm, gesamtLiter, gesamtPreis, avgVerbrauch, avgPreisProLiter };
+}
+
+function render() {
+  const daten = ladenDaten();
+  const statsEl = document.getElementById("stats");
+  const histEl = document.getElementById("history");
+
+  if (daten.length === 0) {
+    statsEl.innerHTML = "";
+    histEl.innerHTML = `<div class="empty">Noch keine Tankeinträge vorhanden.</div>`;
+    return;
+  }
+
+  const { gesamtKm, gesamtLiter, gesamtPreis, avgVerbrauch, avgPreisProLiter } = berechneSummen(daten);
+
+  statsEl.innerHTML = `
+    <div class="stat"><div class="val">${avgVerbrauch.toFixed(1)}</div><div class="lbl">Ø l/100km</div></div>
+    <div class="stat"><div class="val">${avgPreisProLiter.toFixed(2)}€</div><div class="lbl">Ø Preis/L</div></div>
+    <div class="stat"><div class="val">${daten.length}</div><div class="lbl">Tankstopps</div></div>
+    <div class="stat"><div class="val">${gesamtKm.toLocaleString("de-DE", {maximumFractionDigits: 0})}</div><div class="lbl">km gesamt</div></div>
+    <div class="stat"><div class="val">${gesamtLiter.toLocaleString("de-DE", {maximumFractionDigits: 1})}</div><div class="lbl">Liter gesamt</div></div>
+    <div class="stat"><div class="val">${gesamtPreis.toFixed(0)}€</div><div class="lbl">Kosten gesamt</div></div>
+  `;
+
+  const chronologisch = [...daten].reverse();
+
+  histEl.innerHTML = chronologisch.map(d => `
+    <div class="entry-card">
+      <div class="entry-header">
+        <span class="date">${d.datum}</span>
+        <span class="kmstart">km-Stand: ${d.kmStart.toLocaleString("de-DE")}</span>
+      </div>
+      <div class="entry-grid">
+        <div class="item"><span>Strecke</span><b>${d.kmDazwischen.toLocaleString("de-DE", {maximumFractionDigits: 1})} km</b></div>
+        <div class="item verbrauch"><span>Verbrauch</span><b>${d.verbrauch.toLocaleString("de-DE", {maximumFractionDigits: 1})} l/100km</b></div>
+        <div class="item"><span>Getankt</span><b>${d.liter.toLocaleString("de-DE", {minimumFractionDigits: 2})} l</b></div>
+        <div class="item"><span>Preis/Liter</span><b>${d.preisProLiter.toLocaleString("de-DE", {minimumFractionDigits: 2})} €</b></div>
+        <div class="item"><span>Gesamtpreis</span><b>${d.preis.toLocaleString("de-DE", {minimumFractionDigits: 2})} €</b></div>
+        <div class="item"><span>Kosten/km</span><b>${d.kostenProKm.toLocaleString("de-DE", {minimumFractionDigits: 3})} €</b></div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function exportCSV() {
+  const daten = ladenDaten();
+  if (daten.length === 0) {
+    alert("Keine Daten zum Exportieren vorhanden.");
+    return;
+  }
+  const chronologisch = [...daten].reverse();
+  const { gesamtKm, gesamtLiter, gesamtPreis, avgVerbrauch, avgPreisProLiter } = berechneSummen(daten);
+
+  const zahl = (n, nachkomma) => n.toFixed(nachkomma).replace(".", ",");
+
+  const zeilen = ["Datum;km ab Start;Strecke (km);Liter;Preis (EUR);Preis pro Liter;Verbrauch (l/100km)"];
+  chronologisch.forEach(d => {
+    zeilen.push([
+      d.datum,
+      zahl(d.kmStart, 1),
+      zahl(d.kmDazwischen, 1),
+      zahl(d.liter, 2),
+      zahl(d.preis, 2),
+      zahl(d.preisProLiter, 3),
+      zahl(d.verbrauch, 2)
+    ].join(";"));
+  });
+  zeilen.push("");
+  zeilen.push([
+    "Gesamt", "",
+    zahl(gesamtKm, 1),
+    zahl(gesamtLiter, 2),
+    zahl(gesamtPreis, 2),
+    zahl(avgPreisProLiter, 3),
+    zahl(avgVerbrauch, 2)
+  ].join(";"));
+
+  const csvInhalt = "﻿" + zeilen.join("\r\n");
+  const blob = new Blob([csvInhalt], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `tankverlauf_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportPDF() {
+  const daten = ladenDaten();
+  if (daten.length === 0) {
+    alert("Keine Daten zum Exportieren vorhanden.");
+    return;
+  }
+  const chronologisch = [...daten].reverse();
+  const { gesamtKm, gesamtLiter, gesamtPreis, avgVerbrauch, avgPreisProLiter } = berechneSummen(daten);
+
+  const zeilen = chronologisch.map(d => `
+    <tr>
+      <td>${d.datum}</td>
+      <td>${d.kmStart.toLocaleString("de-DE")}</td>
+      <td>${d.kmDazwischen.toLocaleString("de-DE", {maximumFractionDigits: 1})}</td>
+      <td>${d.liter.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
+      <td>${d.preis.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
+      <td>${d.preisProLiter.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
+      <td>${d.verbrauch.toLocaleString("de-DE", {maximumFractionDigits: 1})}</td>
+    </tr>`).join("");
+
+  document.getElementById("printArea").innerHTML = `
+    <h2 style="margin-bottom:4px;">⛽ Tankverbrauch – Auswertung</h2>
+    <p style="margin-top:0;color:#555;">Erstellt am ${new Date().toLocaleDateString("de-DE")}</p>
+    <table>
+      <thead>
+        <tr><th>Datum</th><th>km ab Start</th><th>Strecke</th><th>Liter</th><th>Preis (€)</th><th>€/L</th><th>l/100km</th></tr>
+      </thead>
+      <tbody>${zeilen}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">Gesamt</td>
+          <td>${gesamtKm.toLocaleString("de-DE", {maximumFractionDigits: 0})}</td>
+          <td>${gesamtLiter.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
+          <td>${gesamtPreis.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
+          <td>${avgPreisProLiter.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
+          <td>${avgVerbrauch.toLocaleString("de-DE", {maximumFractionDigits: 1})}</td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+  window.print();
+}
+
+render();
+</script>
+
+</body>
+</html>
