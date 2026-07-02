@@ -196,6 +196,13 @@
 
 <h1>⛽ Tankverbrauch</h1>
 
+<div class="card">
+  <div class="field">
+    <label>Reise (optional)</label>
+    <input id="reiseName" type="text" placeholder="z. B. Sommerurlaub 2026" oninput="reiseNameSpeichern()">
+  </div>
+</div>
+
 <div class="stats" id="stats"></div>
 
 <div class="card">
@@ -231,6 +238,7 @@
 
 <script>
 const STORAGE_KEY = "tankverlauf";
+const REISE_KEY = "reisename";
 
 function ladenDaten() {
   return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -238,6 +246,14 @@ function ladenDaten() {
 
 function speichernDaten(daten) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(daten));
+}
+
+function reiseNameSpeichern() {
+  localStorage.setItem(REISE_KEY, document.getElementById("reiseName").value);
+}
+
+function reiseNameLaden() {
+  return localStorage.getItem(REISE_KEY) || "";
 }
 
 function eintragSpeichern() {
@@ -285,6 +301,8 @@ function eintragSpeichern() {
 function historieLoeschen() {
   if (confirm("Wirklich die komplette Historie löschen?")) {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(REISE_KEY);
+    document.getElementById("reiseName").value = "";
     document.getElementById("result").style.display = "none";
     render();
   }
@@ -341,18 +359,35 @@ function render() {
   `).join("");
 }
 
+function reiseNameAbfragen() {
+  const eingabe = prompt("Name der Reise (für PDF/Excel):", reiseNameLaden());
+  if (eingabe === null) return null;
+  localStorage.setItem(REISE_KEY, eingabe);
+  document.getElementById("reiseName").value = eingabe;
+  return eingabe.trim();
+}
+
+function dateinameSicher(text) {
+  return text.replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, "").trim().replace(/\s+/g, "_");
+}
+
 function exportCSV() {
   const daten = ladenDaten();
   if (daten.length === 0) {
     alert("Keine Daten zum Exportieren vorhanden.");
     return;
   }
+  const reiseName = reiseNameAbfragen();
+  if (reiseName === null) return;
+
   const chronologisch = [...daten].reverse();
   const { gesamtKm, gesamtLiter, gesamtPreis, avgVerbrauch, avgPreisProLiter } = berechneSummen(daten);
 
   const zahl = (n, nachkomma) => n.toFixed(nachkomma).replace(".", ",");
 
-  const zeilen = ["Datum;km ab Start;Strecke (km);Liter;Preis (EUR);Preis pro Liter;Verbrauch (l/100km)"];
+  const zeilen = [];
+  if (reiseName) zeilen.push(`Reise: ${reiseName}`, "");
+  zeilen.push("Datum;km ab Start;Strecke (km);Liter;Preis (EUR);Preis pro Liter;Verbrauch (l/100km)");
   chronologisch.forEach(d => {
     zeilen.push([
       d.datum,
@@ -379,7 +414,8 @@ function exportCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `tankverlauf_${new Date().toISOString().slice(0, 10)}.csv`;
+  const namensteil = reiseName ? `${dateinameSicher(reiseName)}_` : "";
+  a.download = `tankverlauf_${namensteil}${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -392,6 +428,9 @@ function exportPDF() {
     alert("Keine Daten zum Exportieren vorhanden.");
     return;
   }
+  const reiseName = reiseNameAbfragen();
+  if (reiseName === null) return;
+
   const chronologisch = [...daten].reverse();
   const { gesamtKm, gesamtLiter, gesamtPreis, avgVerbrauch, avgPreisProLiter } = berechneSummen(daten);
 
@@ -407,7 +446,7 @@ function exportPDF() {
     </tr>`).join("");
 
   document.getElementById("printArea").innerHTML = `
-    <h2 style="margin-bottom:4px;">⛽ Tankverbrauch – Auswertung</h2>
+    <h2 style="margin-bottom:4px;">⛽ Tankverbrauch – Auswertung${reiseName ? ": " + reiseName : ""}</h2>
     <p style="margin-top:0;color:#555;">Erstellt am ${new Date().toLocaleDateString("de-DE")}</p>
     <table>
       <thead>
@@ -429,6 +468,7 @@ function exportPDF() {
   window.print();
 }
 
+document.getElementById("reiseName").value = reiseNameLaden();
 render();
 </script>
 
