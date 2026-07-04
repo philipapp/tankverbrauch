@@ -478,17 +478,10 @@ function exportPDF() {
   frameDoc.write(html);
   frameDoc.close();
 
-  const druckAufraeumen = () => {
-    if (druckFrame && druckFrame.parentNode) {
-      druckFrame.parentNode.removeChild(druckFrame);
-    }
-    window.scrollTo(0, 0);
-    window.removeEventListener("focus", druckAufraeumen);
-  };
-  window.addEventListener("focus", druckAufraeumen, { once: true });
-  setTimeout(druckAufraeumen, 60000);
-
-  setTimeout(() => druckFrame.contentWindow.print(), 300);
+  setTimeout(() => {
+    druckFrame.contentWindow.print();
+    window.focus();
+  }, 300);
 }
 
 document.getElementById("reiseName").value = reiseNameLaden();
