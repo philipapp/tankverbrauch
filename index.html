@@ -470,7 +470,7 @@ function exportPDF() {
   if (!druckFrame) {
     druckFrame = document.createElement("iframe");
     druckFrame.id = "druckFrame";
-    druckFrame.style.cssText = "position:absolute; width:0; height:0; border:0; left:-9999px;";
+    druckFrame.style.cssText = "position:fixed; width:800px; height:1100px; border:0; top:0; left:-99999px;";
     document.body.appendChild(druckFrame);
   }
   const frameDoc = druckFrame.contentWindow.document;
