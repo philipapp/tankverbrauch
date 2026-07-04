@@ -466,12 +466,18 @@ function exportPDF() {
 </body>
 </html>`;
 
-  const druckFenster = window.open("", "_blank");
-  druckFenster.document.open();
-  druckFenster.document.write(html);
-  druckFenster.document.close();
-  druckFenster.focus();
-  setTimeout(() => druckFenster.print(), 300);
+  let druckFrame = document.getElementById("druckFrame");
+  if (!druckFrame) {
+    druckFrame = document.createElement("iframe");
+    druckFrame.id = "druckFrame";
+    druckFrame.style.cssText = "position:absolute; width:0; height:0; border:0; left:-9999px;";
+    document.body.appendChild(druckFrame);
+  }
+  const frameDoc = druckFrame.contentWindow.document;
+  frameDoc.open();
+  frameDoc.write(html);
+  frameDoc.close();
+  setTimeout(() => druckFrame.contentWindow.print(), 300);
 }
 
 document.getElementById("reiseName").value = reiseNameLaden();
