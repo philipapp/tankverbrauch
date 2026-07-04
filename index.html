@@ -175,21 +175,6 @@
     gap: 10px;
     margin-bottom: 10px;
   }
-  #printArea { display: none; }
-  @media print {
-    html, body { background: #fff !important; height: auto !important; }
-    body > *:not(#printArea) { display: none !important; }
-    #printArea {
-      display: block !important;
-      width: 100%;
-      color: #000; background: #fff;
-    }
-    #printArea table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    #printArea th, #printArea td { border: 1px solid #999; padding: 6px 8px; text-align: right; color: #000; }
-    #printArea th:first-child, #printArea td:first-child { text-align: left; }
-    #printArea thead tr { background: #eee; }
-    #printArea tfoot td { font-weight: 700; background: #f2f2f2; }
-  }
 </style>
 </head>
 <body>
@@ -233,8 +218,6 @@
   <button class="btn-export" onclick="exportCSV()">📊 Excel exportieren</button>
 </div>
 <button class="btn-danger" onclick="historieLoeschen()">Historie löschen</button>
-
-<div id="printArea"></div>
 
 <script>
 const STORAGE_KEY = "tankverlauf";
@@ -445,27 +428,50 @@ function exportPDF() {
       <td>${d.verbrauch.toLocaleString("de-DE", {maximumFractionDigits: 1})}</td>
     </tr>`).join("");
 
-  document.getElementById("printArea").innerHTML = `
-    <h2 style="margin-bottom:4px;">⛽ Tankverbrauch – Auswertung${reiseName ? ": " + reiseName : ""}</h2>
-    <p style="margin-top:0;color:#555;">Erstellt am ${new Date().toLocaleDateString("de-DE")}</p>
-    <table>
-      <thead>
-        <tr><th>Datum</th><th>km ab Start</th><th>Strecke</th><th>Liter</th><th>Preis (€)</th><th>€/L</th><th>l/100km</th></tr>
-      </thead>
-      <tbody>${zeilen}</tbody>
-      <tfoot>
-        <tr>
-          <td colspan="2">Gesamt</td>
-          <td>${gesamtKm.toLocaleString("de-DE", {maximumFractionDigits: 0})}</td>
-          <td>${gesamtLiter.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
-          <td>${gesamtPreis.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
-          <td>${avgPreisProLiter.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
-          <td>${avgVerbrauch.toLocaleString("de-DE", {maximumFractionDigits: 1})}</td>
-        </tr>
-      </tfoot>
-    </table>
-  `;
-  window.print();
+  const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Tankverbrauch – Auswertung</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #000; background: #fff; padding: 20px; margin: 0; }
+  h2 { margin-bottom: 4px; }
+  p { margin-top: 0; color: #555; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid #999; padding: 6px 8px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  thead tr { background: #eee; }
+  tfoot td { font-weight: 700; background: #f2f2f2; }
+</style>
+</head>
+<body>
+  <h2>⛽ Tankverbrauch – Auswertung${reiseName ? ": " + reiseName : ""}</h2>
+  <p>Erstellt am ${new Date().toLocaleDateString("de-DE")}</p>
+  <table>
+    <thead>
+      <tr><th>Datum</th><th>km ab Start</th><th>Strecke</th><th>Liter</th><th>Preis (€)</th><th>€/L</th><th>l/100km</th></tr>
+    </thead>
+    <tbody>${zeilen}</tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">Gesamt</td>
+        <td>${gesamtKm.toLocaleString("de-DE", {maximumFractionDigits: 0})}</td>
+        <td>${gesamtLiter.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
+        <td>${gesamtPreis.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
+        <td>${avgPreisProLiter.toLocaleString("de-DE", {minimumFractionDigits: 2})}</td>
+        <td>${avgVerbrauch.toLocaleString("de-DE", {maximumFractionDigits: 1})}</td>
+      </tr>
+    </tfoot>
+  </table>
+</body>
+</html>`;
+
+  const druckFenster = window.open("", "_blank");
+  druckFenster.document.open();
+  druckFenster.document.write(html);
+  druckFenster.document.close();
+  druckFenster.focus();
+  setTimeout(() => druckFenster.print(), 300);
 }
 
 document.getElementById("reiseName").value = reiseNameLaden();
