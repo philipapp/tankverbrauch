@@ -148,6 +148,16 @@
   }
   .entry-header .date { font-size: 13px; color: var(--text-dim); }
   .entry-header .kmstart { font-size: 13px; color: var(--text-dim); }
+  .btn-edit {
+    width: auto;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--card-2);
+    color: var(--text-dim);
+    border-radius: 10px;
+  }
+  .btn-edit:active { opacity: 0.7; }
   .entry-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -291,6 +301,48 @@ function historieLoeschen() {
   }
 }
 
+function alleAbleitungenNeuBerechnen(daten) {
+  const chronologisch = [...daten].reverse();
+  let vorherigerKmStart = 0;
+  chronologisch.forEach(eintrag => {
+    const kmDazwischen = eintrag.kmStart > vorherigerKmStart ? eintrag.kmStart - vorherigerKmStart : eintrag.kmStart;
+    eintrag.kmDazwischen = kmDazwischen;
+    eintrag.verbrauch = (eintrag.liter / kmDazwischen) * 100;
+    eintrag.preisProLiter = eintrag.preis / eintrag.liter;
+    eintrag.kostenProKm = eintrag.preis / kmDazwischen;
+    vorherigerKmStart = eintrag.kmStart;
+  });
+}
+
+function eintragBearbeiten(index) {
+  const daten = ladenDaten();
+  const eintrag = daten[index];
+
+  const neuKmStart = prompt("Kilometerstand (Trip-Anzeige):", eintrag.kmStart.toString().replace(".", ","));
+  if (neuKmStart === null) return;
+  const neuLiter = prompt("Getankte Liter:", eintrag.liter.toString().replace(".", ","));
+  if (neuLiter === null) return;
+  const neuPreis = prompt("Gesamtpreis (€):", eintrag.preis.toString().replace(".", ","));
+  if (neuPreis === null) return;
+
+  const kmStart = parseFloat(neuKmStart.replace(",", "."));
+  const liter = parseFloat(neuLiter.replace(",", "."));
+  const preis = parseFloat(neuPreis.replace(",", "."));
+
+  if (!kmStart || !liter || !preis || kmStart <= 0 || liter <= 0 || preis <= 0) {
+    alert("Bitte gültige Werte eingeben.");
+    return;
+  }
+
+  eintrag.kmStart = kmStart;
+  eintrag.liter = liter;
+  eintrag.preis = preis;
+
+  alleAbleitungenNeuBerechnen(daten);
+  speichernDaten(daten);
+  render();
+}
+
 function berechneSummen(daten) {
   const gesamtKm = daten.reduce((s, d) => s + d.kmDazwischen, 0);
   const gesamtLiter = daten.reduce((s, d) => s + d.liter, 0);
@@ -324,11 +376,14 @@ function render() {
 
   const chronologisch = [...daten].reverse();
 
-  histEl.innerHTML = chronologisch.map(d => `
+  histEl.innerHTML = chronologisch.map((d, i) => `
     <div class="entry-card">
       <div class="entry-header">
-        <span class="date">${d.datum}</span>
-        <span class="kmstart">km-Stand: ${d.kmStart.toLocaleString("de-DE")}</span>
+        <div>
+          <div class="date">${d.datum}</div>
+          <div class="kmstart">km-Stand: ${d.kmStart.toLocaleString("de-DE")}</div>
+        </div>
+        <button class="btn-edit" onclick="eintragBearbeiten(${daten.length - 1 - i})">✎ Bearbeiten</button>
       </div>
       <div class="entry-grid">
         <div class="item"><span>Strecke</span><b>${d.kmDazwischen.toLocaleString("de-DE", {maximumFractionDigits: 1})} km</b></div>
