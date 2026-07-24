@@ -185,6 +185,21 @@
     gap: 10px;
     margin-bottom: 10px;
   }
+  .mode-toggle {
+    display: flex;
+    gap: 8px;
+  }
+  .mode-btn {
+    flex: 1;
+    background: var(--card-2);
+    color: var(--text-dim);
+    font-size: 15px;
+    padding: 12px;
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: #1a1300;
+  }
 </style>
 </head>
 <body>
@@ -202,7 +217,14 @@
 
 <div class="card">
   <div class="field">
-    <label>Kilometerstand (Trip-Anzeige)</label>
+    <label>Eingabemodus</label>
+    <div class="mode-toggle">
+      <button type="button" id="modeTrip" class="mode-btn" onclick="modusSetzen('trip')">Trip-Anzeige</button>
+      <button type="button" id="modeGesamt" class="mode-btn" onclick="modusSetzen('gesamt')">Gesamt-km</button>
+    </div>
+  </div>
+  <div class="field">
+    <label id="kmStartLabel">Kilometerstand (Trip-Anzeige)</label>
     <input id="kmStart" type="text" inputmode="decimal" placeholder="z. B. 430,1">
   </div>
   <div class="field">
@@ -232,6 +254,7 @@
 <script>
 const STORAGE_KEY = "tankverlauf";
 const REISE_KEY = "reisename";
+const MODUS_KEY = "eingabemodus";
 
 function ladenDaten() {
   return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -239,6 +262,30 @@ function ladenDaten() {
 
 function speichernDaten(daten) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(daten));
+}
+
+function modusLaden() {
+  return localStorage.getItem(MODUS_KEY) || "trip";
+}
+
+function modusSetzen(modus) {
+  localStorage.setItem(MODUS_KEY, modus);
+  modusUIAktualisieren();
+}
+
+function modusUIAktualisieren() {
+  const modus = modusLaden();
+  document.getElementById("modeTrip").classList.toggle("active", modus === "trip");
+  document.getElementById("modeGesamt").classList.toggle("active", modus === "gesamt");
+  const label = document.getElementById("kmStartLabel");
+  const input = document.getElementById("kmStart");
+  if (modus === "trip") {
+    label.textContent = "Kilometerstand (Trip-Anzeige)";
+    input.placeholder = "z. B. 430,1";
+  } else {
+    label.textContent = "Gesamtkilometerstand";
+    input.placeholder = "z. B. 128450";
+  }
 }
 
 function reiseNameSpeichern() {
@@ -261,7 +308,17 @@ function eintragSpeichern() {
 
   const daten = ladenDaten();
   const letzterKmStart = daten.length ? daten[0].kmStart : 0;
-  const kmDazwischen = kmStart > letzterKmStart ? kmStart - letzterKmStart : kmStart;
+  const modus = modusLaden();
+
+  let kmDazwischen;
+  if (kmStart > letzterKmStart) {
+    kmDazwischen = kmStart - letzterKmStart;
+  } else if (modus === "trip") {
+    kmDazwischen = kmStart;
+  } else {
+    alert(`Der Gesamtkilometerstand kann nicht kleiner sein als der letzte Eintrag (${letzterKmStart.toLocaleString("de-DE")} km). Bitte prüfen.`);
+    return;
+  }
 
   const verbrauch = (liter / kmDazwischen) * 100;
   const preisProLiter = preis / liter;
@@ -540,6 +597,7 @@ function exportPDF() {
 }
 
 document.getElementById("reiseName").value = reiseNameLaden();
+modusUIAktualisieren();
 render();
 </script>
 
